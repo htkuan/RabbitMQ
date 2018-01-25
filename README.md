@@ -62,6 +62,44 @@ in shell 2 (send error message)
 $ python emit_log_direct.py error "Run. Run. Or it will explode."
 ```
 ## tutorial 5 (Topics)
+雖然exchange的fanout可以廣,direct可以選擇要丟的queue,但是卻不能根據不同標準來丟message
+
+像是log系統可以根據嚴重程度區分(info, error),但也可以根據產生的元件分別(auth, cron)
+
+這時就需要第三個exchange type: topic 
+
+topic如何做到,其實與direct差不多是利用routing_key的match
+
+不過這次 routing_key 可以指定多個值(basic_publish跟queue_bind都可以)
+
+取值規則 '<xxx>.<aaa>' or '<xxx>.<zzz>.<aaa>' 最多255bytes
+
+\* 星號代表可替帶一個<> and # 代表可以替代一個或多個<>
+
+ex. basic_publish 發給exchange routing_key='a.b.c'
+
+| queue name | routing_key | receive |
+| :--------: | :---------: | :-----: |
+|  queue 1   | 'g.b.*' |    X    |
+|  queue 2   | '*.b.c' |    O    |
+|  queue 3   | 'a.#' |    O    |
+|  queue 4   | 'q.#' and 'a.b.*'|    O    |
+
+```
+To receive all the logs run:
+$ python receive_logs_topic.py "#"
+To receive all logs from the facility "kern":
+$ python receive_logs_topic.py "kern.*"
+if you want to hear only about "critical" logs:
+$ python receive_logs_topic.py "*.critical"
+You can create multiple bindings:
+$ python receive_logs_topic.py "kern.*" "*.critical"
+Receive nothing
+$ python receive_logs_topic.py "nothing.*"
+emit a log with a routing key "kern.critical" type:
+$ python emit_log_topic.py "kern.critical" "A critical kernel error"
+```
+
 
 ## tutorial 6 (RPC)
 
