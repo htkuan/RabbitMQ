@@ -1,40 +1,76 @@
 # Run RabbitMQ
 ```
 run rabbitmq
-$ docker run -d -p 5672:5672 --name my-rabbit rabbitmq:3.7
+$ docker run -d -p 5672:5672 -p 8080:15672 --name my-rabbit rabbitmq:3-management
+
 into rabbitmq container
 $ docker exec -it my-rabbit bash
 ```
 
+rabbitmq:3-management 這個版本提供 RabbitMQ 的 GUI 管理介面!
+
+可以訪問這個網址[http://localhost:8080](http://localhost:8080)
+
+預設帳號密碼為 guest/guest
+
 ## tutorial 1 (Hello World!)
+
+producer (sender) -> queue(hello) -> consumer (receiver)
+
+基本流程：
+1. 建立連線
+2. producer發送message到exchange,再透過exchange把message送到指定的queue
+3. consumer從queue中接收message
+
 ```
 in shell 1
 $ python receive.py
+
 in shell 2
 $ python send.py
 ```
 
 ## tutorial 2 (Work Queues)
-```angular2html
-in shell 1,2,3....
+
+producer -(tasks)-> task_queue -(tasks)-> multiple workers
+
+可以開啟多個workers, 從queue中拿取task做consuming的動作
+
+
+* Message acknowledgment: 參考worker.py中的註解
+* Message durability: 參考new_task.py中的註解
+* Fair dispatch: 參考worker.py中的註解
+
+```
+in shell 1,2,3....(create multiple workers)
 $ python worker.py
+
 in new shell (repeat to sand task)
 $ python new_task.py
 ```
+
 ## tutorial 3 (Publish/Subscribe)
-其實producer並不是直接吧message送到queue裡面,或是說producer
-根本不知道message會被送到哪個queue中,producer只會把message送給
-"exchange",而exchange做的事情也很簡單,就是接收producer的
-message然後把message push給queue,根據"exchange type" exchange
-可以知道message要送到哪個queue或是多個亦或者是discard message.
+其實producer並不是直接吧message送到queue裡面,
+
+或是說producer根本不知道message會被送到哪個queue中,
+
+producer只會把message送給"exchange",而exchange做的事情也很簡單,
+
+就是接收producer的message然後把message push給queue,
+
+根據"exchange type" exchange可以知道message要送到哪個queue或是多個亦或者是discard message.
+
 有四種exchange type(direct, topic, headers and fanout)
 
 * fanout: 把message廣播到所有queue
 * direct: 把message送到綁定的queue(queue_bind綁定routing_key,basic_publish指定routing_key送)
+* topic: 把message送到綁定的queue(但是可以綁定多個條件)
 
+示範 fanout
 ```
 in shell 1
 $ python receive_logs.py
+
 or save logs to a file
 $ python receive_logs.py > logs_from_rabbit.log
 
@@ -55,6 +91,7 @@ basic_publish時producer只能把message給exchange並指定routing_key
 ```
 in shell 1 (see all the log messages on your shell)
 $ python receive_logs_direct.py info warning error
+
 save only 'warning' and 'error' (and not 'info') log messages to a file
 $ python receive_logs_direct.py warning error > logs_from_rabbit.log
 
@@ -78,7 +115,7 @@ topic如何做到,其實與direct差不多是利用routing_key的match
 
 ex. basic_publish 發給exchange routing_key='a.b.c'
 
-| queue name | routing_key | receive |
+| queue name | routing_key | received |
 | :--------: | :---------: | :-----: |
 |  queue 1   | 'g.b.*' |    X    |
 |  queue 2   | '*.b.c' |    O    |
@@ -88,14 +125,19 @@ ex. basic_publish 發給exchange routing_key='a.b.c'
 ```
 To receive all the logs run:
 $ python receive_logs_topic.py "#"
+
 To receive all logs from the facility "kern":
 $ python receive_logs_topic.py "kern.*"
+
 if you want to hear only about "critical" logs:
 $ python receive_logs_topic.py "*.critical"
+
 You can create multiple bindings:
 $ python receive_logs_topic.py "kern.*" "*.critical"
+
 Receive nothing
 $ python receive_logs_topic.py "nothing.*"
+
 emit a log with a routing key "kern.critical" type:
 $ python emit_log_topic.py "kern.critical" "A critical kernel error"
 ```
@@ -103,11 +145,15 @@ $ python emit_log_topic.py "kern.critical" "A critical kernel error"
 
 ## tutorial 6 (Remote procedure call)
 在 tutorial 2 中用了多個worker來consuming work_queue裡面的tasks,
+
 但如果需要在遠端機器上跑程式然後等待結果,該怎麼在RabbitMQ上實現這個RPC系統呢?
 
 工作模式由client發起Request到rpc_queue,由RPC worker(aka. server)來處理這個Request,
+
 並且將處理過後的Reply根據Request的reply_to,將Reply發到callback_queue,
+
 然而這樣client從callback_queue接回Reply並無法判別是哪個Request的Reply,
+
 所以在Request給上correlation_id,並且回傳Reply也標記上同樣的id,來讓client知道!
 
 client -> Request(reply_to=amqp.gen-X, correlation_id=abc) -> rpc_queue -> server
@@ -118,6 +164,7 @@ client <- Reply(correlation_id=abc) <- callback_queue(amqp.gen-X) <- server
 ```
 start the RPC server
 $ python rpc_server.py
+
 To request a fibonacci number run the client
 $ python rpc_client.py
 ```
@@ -126,10 +173,13 @@ $ python rpc_client.py
 ```
 list all queue
 $ rabbitmqctl list_queues
+
 print the messages_unacknowledged field
 $ rabbitmqctl list_queues name messages_ready messages_unacknowledged
+
 list the exchanges on the server
 $ rabbitmqctl list_exchanges
+
 list existing bindings using
 $ rabbitmqctl list_bindings
 ```
