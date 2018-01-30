@@ -13,6 +13,47 @@ rabbitmq:3-management 這個版本提供 RabbitMQ 的 GUI 管理介面!
 
 預設帳號密碼為 guest/guest
 
+若想設置 預設帳號密碼可以加上 RABBITMQ_DEFAULT_USER 和 RABBITMQ_DEFAULT_PASS 參數
+```
+$ docker run -d -p 5672:5672 -p 8080:15672 --name my-rabbit -e RABBITMQ_DEFAULT_USER=user -e RABBITMQ_DEFAULT_PASS=password rabbitmq:3-management
+```
+
+*rabbitmq也提供api接口*
+
+可以訪問這個網址[http://localhost:8080/api](http://localhost:8080/api)
+
+## RabbitMQ 虛擬主機
+
+RabbitMQ server 可以自己建立虛擬主機(vhost),擁有自己的Queue、exchange和binding
+
+不同的vhost完全隔離獨立,可以避免命名問題,如果不建立vhost是用預設的虛擬主機"/"
+
+使用預設的帳號密碼 guest/guest
+
+利用RabbitMQ 指令建立 vhost 並給定許可權
+```
+先進入 rabbitmq container
+$ docker exec -it my-rabbit bash
+
+加入 user
+$ rabbitmqctl add_user username password
+
+加入 vhost
+$ rabbitmqctl add_vhost host_name
+
+設置 permission
+$ rabbitmqctl set_permission -p host_name username ".*" ".*" ".*"
+最後三個設定分別代表 Queue的exchange的 (建立刪除) (發布訊息) (消費訊息)
+
+設置登入 GUI 管理介面許可
+$ rabbitmqctl set_user_tags username administrator
+```
+
+若想直接開啟docker 就建立預設的vhost可以給定 RABBITMQ_DEFAULT_VHOST 參數
+```
+$ docker run -d -p 5672:5672 -p 8080:15672 --name my-rabbit -e RABBITMQ_DEFAULT_VHOST=my_vhost -e RABBITMQ_DEFAULT_USER=user -e RABBITMQ_DEFAULT_PASS=password rabbitmq:3-management
+```
+
 ## tutorial 1 (Hello World!)
 
 producer (sender) -> queue(hello) -> consumer (receiver)
@@ -65,6 +106,7 @@ producer只會把message送給"exchange",而exchange做的事情也很簡單,
 * fanout: 把message廣播到所有queue
 * direct: 把message送到綁定的queue(queue_bind綁定routing_key,basic_publish指定routing_key送)
 * topic: 把message送到綁定的queue(但是可以綁定多個條件)
+* header: 比對AMQP的表頭而非routing_key,與direct使用上差不多,只有效能上的差異
 
 示範 fanout
 ```
@@ -171,6 +213,12 @@ $ python rpc_client.py
 
 ## RabbitMQ command
 ```
+list all users
+$ rabbitmqctl list_users
+
+list all vhost
+$ rabbitmqctl list_vhost
+
 list all queue
 $ rabbitmqctl list_queues
 
@@ -183,3 +231,5 @@ $ rabbitmqctl list_exchanges
 list existing bindings using
 $ rabbitmqctl list_bindings
 ```
+## RabbitMQ 叢集
+待續...
