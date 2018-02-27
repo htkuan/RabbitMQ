@@ -2,7 +2,7 @@
 
 RabbitMQ 是一個實現 AMQP 協定標準的開放原始碼訊息代理(message broker)和佇列伺服器, 
 
-伺服器端用 Erlang 編寫, 支持多種客戶端, 常被運用在許多網站組件的解偶！
+伺服器端用 Erlang 編寫, 支持多種客戶端, 常被運用在許多網站組件的解耦！
 
 [AMQP 協定](https://en.wikipedia.org/wiki/Advanced_Message_Queuing_Protocol)
 
@@ -106,16 +106,19 @@ $ pip install pika
 | 3. 佇列(Queue): 把訊息投遞給有訂閱的此佇列的 Consumer
     
 | 4. 訊息訂閱者(Consumer): Consumer 也可以主動到佇列獲取 Message
-```
+``` 
 
-## tutorial 1 (Hello World!)
+# tutorial 1 (Hello World!)
 
-producer (sender) -> queue(hello) -> consumer (receiver)
+producer (sender) -> queue (hello) -> consumer (receiver)
 
 基本流程：
 1. 建立連線
-2. producer發送message到exchange,再透過exchange把message送到指定的queue
+2. producer發送message到exchange, 再透過exchange把message送到指定的queue
 3. consumer從queue中接收message
+
+* Channel: Channel是RabbitMQ的最重要的一個API接口, 
+我們大部分的業務操作是在Channel這個接口中完成的, 包括定義Queue、定義Exchange、綁定Queue與Exchange、發布消息等。
 
 ```
 in shell 1
@@ -125,7 +128,7 @@ in shell 2
 $ python send.py
 ```
 
-## tutorial 2 (Work Queues)
+# tutorial 2 (Work Queues)
 
 producer -(tasks)-> task_queue -(tasks)-> multiple workers
 
@@ -144,7 +147,8 @@ in new shell (repeat to sand task)
 $ python new_task.py
 ```
 
-## tutorial 3 (Publish/Subscribe)
+# tutorial 3 (Publish/Subscribe)
+
 其實producer並不是直接吧message送到queue裡面,
 
 或是說producer根本不知道message會被送到哪個queue中,
@@ -173,7 +177,7 @@ $ python receive_logs.py > logs_from_rabbit.log
 in shell 2
 $ python emit_log.py
 ```
-## tutorial 4 (Routing)
+# tutorial 4 (Routing)
 exchange type = direct 的 exchange下
 
 queue_bind綁定讓exchange綁定queue的routing_key(有點像路牌)
@@ -194,7 +198,7 @@ $ python receive_logs_direct.py warning error > logs_from_rabbit.log
 in shell 2 (send error message)
 $ python emit_log_direct.py error "Run. Run. Or it will explode."
 ```
-## tutorial 5 (Topics)
+# tutorial 5 (Topics)
 雖然exchange的fanout可以廣播,direct可以選擇要丟的queue,但是卻不能根據不同標準來丟message
 
 像是log系統可以根據嚴重程度區分(info, error),但也可以根據產生的元件分別(auth, cron)
@@ -239,7 +243,7 @@ $ python emit_log_topic.py "kern.critical" "A critical kernel error"
 ```
 
 
-## tutorial 6 (Remote procedure call)
+# tutorial 6 (Remote procedure call)
 在 tutorial 2 中用了多個worker來consuming work_queue裡面的tasks,
 
 但如果需要在遠端機器上跑程式然後等待結果,該怎麼在RabbitMQ上實現這個RPC系統呢?
