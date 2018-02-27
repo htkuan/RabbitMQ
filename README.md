@@ -1,7 +1,25 @@
-# Run RabbitMQ
+# RabbitMQ
+
+RabbitMQ 是一個實現 AMQP 協定標準的開放原始碼訊息代理(message broker)和佇列伺服器, 
+
+伺服器端用 Erlang 編寫, 支持多種客戶端, 常被運用在許多網站組件的解偶！
+
+[AMQP 協定](https://en.wikipedia.org/wiki/Advanced_Message_Queuing_Protocol)
+
+[rabbitmq github](https://github.com/rabbitmq)
+
+# Install and Run RabbitMQ
+
+Docker:
 ```
+download image
+$ docker pull rabbitmq:3-management
+
 run rabbitmq
 $ docker run -d -p 5672:5672 -p 8080:15672 --name my-rabbit rabbitmq:3-management
+
+stop rabbitmq
+$ docker stop my-rabbit
 
 into rabbitmq container
 $ docker exec -it my-rabbit bash
@@ -22,15 +40,26 @@ $ docker run -d -p 5672:5672 -p 8080:15672 --name my-rabbit -e RABBITMQ_DEFAULT_
 
 可以訪問這個網址[http://localhost:8080/api](http://localhost:8080/api)
 
-## RabbitMQ 虛擬主機
+Mac 用戶也可以用 Homebrew 下載安裝:
+```
+Before installing make sure you have the latest brews
+$ brew update
 
-RabbitMQ server 可以自己建立虛擬主機(vhost),擁有自己的Queue、exchange和binding
+install RabbitMQ server
+$ brew install rabbitmq
+```
 
-不同的vhost完全隔離獨立,可以避免命名問題,如果不建立vhost是用預設的虛擬主機"/"
+[官方下載頁面](https://www.rabbitmq.com/download.html)
+
+# RabbitMQ 虛擬主機
+
+RabbitMQ server 可以自己建立虛擬主機(vhost), 擁有自己的 Queue、exchange 和 binding
+
+不同的 vhost 完全隔離獨立, 可以避免命名問題, 如果不建立 vhost 是用預設的虛擬主機 "/"
 
 使用預設的帳號密碼 guest/guest
 
-利用RabbitMQ 指令建立 vhost 並給定許可權
+利用RabbitMQ 指令建立 vhost 並給定 permission
 ```
 先進入 rabbitmq container
 $ docker exec -it my-rabbit bash
@@ -43,7 +72,7 @@ $ rabbitmqctl add_vhost host_name
 
 設置 permission
 $ rabbitmqctl set_permission -p host_name username ".*" ".*" ".*"
-最後三個設定分別代表 Queue的exchange的 (建立刪除) (發布訊息) (消費訊息)
+最後三個設定分別代表 Queue 和 exchange 的 (建立刪除) (發布訊息) (消費訊息)
 
 設置登入 GUI 管理介面許可
 $ rabbitmqctl set_user_tags username administrator
@@ -52,6 +81,31 @@ $ rabbitmqctl set_user_tags username administrator
 若想直接開啟docker 就建立預設的vhost可以給定 RABBITMQ_DEFAULT_VHOST 參數
 ```
 $ docker run -d -p 5672:5672 -p 8080:15672 --name my-rabbit -e RABBITMQ_DEFAULT_VHOST=my_vhost -e RABBITMQ_DEFAULT_USER=user -e RABBITMQ_DEFAULT_PASS=password rabbitmq:3-management
+```
+
+# Python client pika
+
+本篇教學以 python 套件 pika 作為客戶端應用
+
+python version: 3.6.4
+
+install pika:
+```
+$ pip install pika
+```
+
+[pika api reference](https://pika.readthedocs.io/en/latest/index.html)
+
+# RabbitMQ workflow
+
+```
+| 1. 訊息發布者(Producer): Message 的產生者
+         
+| 2. 交換機(Exchange): 交換機作為路由把從 Producer 接到的 Message 根據路由規則發送到綁定的 Queue
+
+| 3. 佇列(Queue): 把訊息投遞給有訂閱的此佇列的 Consumer
+    
+| 4. 訊息訂閱者(Consumer): Consumer 也可以主動到佇列獲取 Message
 ```
 
 ## tutorial 1 (Hello World!)

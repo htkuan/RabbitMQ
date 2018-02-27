@@ -1,0 +1,8 @@
+__pycache__/*
+*.log
+*.DS_Store
+
+# IPython Notebook
+.ipynb_checkpoints
+
+.idea/
