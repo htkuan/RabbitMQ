@@ -289,5 +289,16 @@ $ rabbitmqctl list_exchanges
 list existing bindings using
 $ rabbitmqctl list_bindings
 ```
-## RabbitMQ 叢集
-待續...
+## RabbitMQ Cluster
+(rabbitmq 叢集文檔)[https://www.rabbitmq.com/clustering.html]
+
+啟動 cluster
+```
+cd cluster/
+docker-compose up -d
+```
+
+關閉
+```
+docker-compose down
+```
