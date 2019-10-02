@@ -302,3 +302,55 @@ docker-compose up -d
 ```
 docker-compose down
 ```
+
+## Best Practice
+
+[cloud amqp ref](https://www.cloudamqp.com/blog/tag/guide.html)
+
+* max size of one single message
+  * size limit in RabbitMQ is 2GB
+  * recommend sending messages smaller than 128MB
+* Too many queued messages, high message rate during a long time or frequently opened and closed connections have been the most common reasons for high CPU usage.
+* CPU 80% up alarm; Memory 90% up alarm
+* Most common errors/mistakes cause High CPU & Memory usage
+  1. TOO MANY QUEUED MESSAGES -> high RAM usage(因為訊息會先 cache 在 memory)
+  2. TOO MANY UNACKNOWLEDGED MESSAGES -> high RAM usage(All unacknowledged messages have to reside in RAM on the servers.)
+  3. TOO HIGH MESSAGE THROUGHPUT -> If CPU User time is high, it could be due to high message throughput.
+  4. TOO MANY QUEUES
+  5. FREQUENTLY OPENING AND CLOSING CONNECTIONS -> If CPU System time is high, you should check how you are handling your connections.
+  6. CONNECTION OR CHANNEL LEAK
+
+* lazy queues: 啟用的話，訊息會先寫進 disk，需要時才寫入 memory 使用，好處是節省 memory，壞處是 disk I/O 變多，會變慢
+* FOR PYTHON CELERY: https://www.cloudamqp.com/docs/celery.html
+    * 關掉一些不必要的訊息傳遞，跟心跳設定 
+    * disable the result backend(CELERY_RESULT_BACKEND = None)
+* Benchmark testing: https://www.cloudamqp.com/blog/2016-11-18-load-testing-and-performance-measurements-rabbitmq.html
+* persist messages: 
+  * Declared your queue as durable: 目的是 RabbitMQ 重啟時，會保留原本的 queue，但跟 queue 裡面的訊息沒關係
+  * Set message delivery mode to persistent: 訊息 delivery 時分為 persistent mode 跟 transient mode。
+* Keep your queue short (if possible): < 10000
+* Enable lazy queues to get predictable performance
+  * 如果 worker 消費跟不上，建議啟用，可以減少 RAM 的使用，如批次作業
+  * 如果需要高吞吐量，則建議禁用，因為 disk I/O 會拖慢速度
+* Limit queue size with TTL or max-length
+  * Another recommendation for applications that often get hit by spikes of messages, and where throughput is more important than anything else, is to set a max-length on the queue.
+  * This keeps the queue short by discarding messages from the head of the queue so that it never gets larger than the max-length setting.
+* Number of queues
+  * Queues are single-threaded in RabbitMQ 
+  * one queue can handle up to about 50 thousand messages
+  *  You will achieve better throughput on a multi-core system if you have multiple queues and consumers and if you have as many queues as cores on the underlying node(s).
+  * RabbitMQ management interface 要收集資訊，如果太多 queue，會拖慢速度
+* Split your queues over different cores
+  * https://www.cloudamqp.com/blog/2017-12-29-part1-rabbitmq-best-practice.html#split-your-queues-over-different-cores
+* Don’t set your own names on temporary queues: 如果只是暫時的 queue，就直接用系統給得隨機名字
+* Auto-delete queues you are not using: 有可能因為客戶端的錯誤創建很多 queue 而影響效能
+  * Set a TTL policy in the queue: 設置幾天後自動刪除沒有被消費的 queue
+  * Set auto-delete queue: 會在 queue 失去最後一個 connection 得時候刪掉 queue
+  * exclusive queue: deleted when their declaring connection is closed or gone
+* Set limited use of priority queues: 優先級跟會佔用資源，通常5以下就夠了
+* RabbitMQ message size and types: 雖然發送巨大的訊息不是好的作法，但是多個小訊息會更慢，所以適時的把多個小訊息捆綁成一個較大的訊息發送會優化效能
+* Don’t share channels between threads
+* Don’t open and close connections or channels repeatedly
+* Separate connections for publisher and consumer
+* A large number of connections and channels might affect the RabbitMQ management interface performance
+* Acknowledgements and Confirms
