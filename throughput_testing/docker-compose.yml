@@ -1,0 +1,23 @@
+version: '3.6'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.8.9-management-alpine
+    container_name: rabbitmq
+    networks:
+      - throughput-testing
+    ports:
+      - "15672:15672"
+  perftest:
+    image: pivotalrabbitmq/perf-test:2.12.0-alpine
+    container_name: perftest
+    networks:
+      - throughput-testing
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do sleep 30; done;"]
+    volumes:
+      - "./html_report_spec:/perf_test/html_report_spec"
+    ports:
+      - "8080:8080"
+networks:
+  throughput-testing:
